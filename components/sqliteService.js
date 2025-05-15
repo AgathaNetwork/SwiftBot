@@ -1,5 +1,6 @@
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 class SQLiteService {
     constructor(dbPath) {
@@ -15,6 +16,7 @@ class SQLiteService {
     }
 
     initialize() {
+        // 创建 users 表
         this.db.run(`
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,6 +29,26 @@ class SQLiteService {
                 console.error(`Error creating table: ${err.message}`);
             } else {
                 console.log('Users table created or already exists.');
+            }
+        });
+
+        // 新增 sessions 表
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT UNIQUE NOT NULL,
+                user_id INTEGER NOT NULL,
+                login_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                logout_time DATETIME,
+                is_logged_out BOOLEAN DEFAULT FALSE,
+                login_ip TEXT,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        `, (err) => {
+            if (err) {
+                console.error(`Error creating table: ${err.message}`);
+            } else {
+                console.log('Sessions table created or already exists.');
             }
         });
     }
@@ -47,7 +69,7 @@ class SQLiteService {
         }
     }
 
-    async login(username, password, callback) {
+    async login(username, password, ip, callback) {
         this.db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, row) => {
             if (err) {
                 callback(err);
@@ -55,7 +77,16 @@ class SQLiteService {
                 try {
                     const match = await bcrypt.compare(password, row.password);
                     if (match) {
-                        callback(null, row);
+                        // 生成 session_id
+                        const sessionId = crypto.randomBytes(16).toString('hex');
+                        // 插入 session 记录
+                        this.db.run(`INSERT INTO sessions (session_id, user_id, login_ip) VALUES (?, ?, ?)`, [sessionId, row.id, ip], function(err) {
+                            if (err) {
+                                callback(err);
+                            } else {
+                                callback(null, { sessionId, userId: row.id });
+                            }
+                        });
                     } else {
                         callback(new Error('Invalid username or password'));
                     }
@@ -68,26 +99,14 @@ class SQLiteService {
         });
     }
 
-    async changePassword(userId, newPassword, callback) {
-        try {
-            const saltRounds = 10;
-            const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
-            this.db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, userId], function(err) {
-                if (err) {
-                    callback(err);
-                } else {
-                    callback(null, this.changes);
-                }
-            });
-        } catch (err) {
-            callback(err);
-        }
-    }
-
-    logout(userId, callback) {
-        // In a real-world scenario, you might want to invalidate a session token here.
-        // For simplicity, we'll just call the callback with no action.
-        callback(null, true);
+    async logout(sessionId, callback) {
+        this.db.run(`UPDATE sessions SET logout_time = CURRENT_TIMESTAMP, is_logged_out = TRUE WHERE session_id = ?`, [sessionId], function(err) {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, { success: true });
+            }
+        });
     }
 
     getUserInfo(userId, callback) {
@@ -116,6 +135,28 @@ class SQLiteService {
                 console.error(`Error closing the database: ${err.message}`);
             } else {
                 console.log('Database connection closed.');
+            }
+        });
+    }
+
+    // 新增方法：判断用户表中是否有数据
+    isUserInitialized(callback) {
+        this.db.get(`SELECT COUNT(*) as count FROM users`, [], (err, row) => {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, row.count > 0);
+            }
+        });
+    }
+
+    // 新增方法：获取用户会话信息
+    getUserSession(sessionId, callback) {
+        this.db.get(`SELECT * FROM sessions WHERE session_id = ? AND is_logged_out = FALSE`, [sessionId], (err, row) => {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, row);
             }
         });
     }

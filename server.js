@@ -4,7 +4,8 @@ const yaml = require('js-yaml');
 const fs = require('fs');
 const app = express();
 const SQLiteService = require('./components/sqliteService');
-const dbPath = 'users.db';
+const userRoutes = require('./routes/userRoutes'); // 引入用户路由
+const dbPath = 'db/runtime.db';
 const userService = new SQLiteService(dbPath);
 userService.initialize();
 
@@ -15,6 +16,12 @@ const port = config.port;
 
 // Serve static files from the "public" directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// 解析请求体
+app.use(express.json());
+
+// 使用用户路由
+app.use(userRoutes);
 
 // Start the server
 app.listen(port, () => {
