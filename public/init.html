@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>初始化用户</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-light" style="background-color: #e3f2fd;">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                SwiftBot
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h2 class="text-center mb-4">初始化用户</h2>
+                <form id="initForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" placeholder="请输入用户名" required>
+                        <small class="form-text text-muted">仅允许小写字母和数字。</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">昵称</label>
+                        <input type="text" class="form-control" id="name" placeholder="请输入昵称" required>
+                        <small class="form-text text-muted">允许字母、数字和下划线。</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="password" placeholder="请输入密码" required>
+                        <small class="form-text text-muted">密码长度为8-20个字符。</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">初始化</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="container mt-5">
+        <div id="successAlert" class="alert alert-primary" role="alert" style="display: none;">
+            用户初始化成功！
+        </div>
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display: none;">
+            错误信息将显示在这里。
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('initForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const name = document.getElementById('name').value;
+            const password = document.getElementById('password').value;
+
+            // 验证用户名格式
+            if (!/^[a-z0-9]+$/.test(username)) {
+                document.getElementById('errorAlert').innerText = '用户名必须是小写字母和数字。';
+                document.getElementById('errorAlert').style.display = 'flex';
+                return;
+            }
+
+            // 验证昵称格式
+            if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+                document.getElementById('errorAlert').innerText = '昵称必须是字母、数字和下划线。';
+                document.getElementById('errorAlert').style.display = 'flex';
+                return;
+            }
+
+            // 验证密码长度
+            if (password.length < 8 || password.length > 20) {
+                document.getElementById('errorAlert').innerText = '密码长度必须在8-20个字符之间。';
+                document.getElementById('errorAlert').style.display = 'flex';
+                return;
+            }
+
+            // 发送请求
+            fetch('/api/initializeUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, name, password })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('successAlert').style.display = 'flex';
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    document.getElementById('errorAlert').innerText = '用户初始化失败：' + data.error;
+                    document.getElementById('errorAlert').style.display = 'flex';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('errorAlert').innerText = '初始化用户时发生错误：' + error.message;
+                document.getElementById('errorAlert').style.display = 'flex';
+            });
+        });
+
+    </script>
+</body>
+</html>
+
+

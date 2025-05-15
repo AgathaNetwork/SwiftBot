@@ -139,6 +139,25 @@ class SQLiteService {
         });
     }
 
+    // 新增方法：初始化用户
+    initializeUser(username, name, password, callback) {
+        this.isUserInitialized((err, isInitialized) => {
+            if (err) {
+                callback(err);
+            } else if (isInitialized) {
+                callback(new Error('User initialization already completed'));
+            } else {
+                this.register(username, password, name, (err, userId) => {
+                    if (err) {
+                        callback(err);
+                    } else {
+                        callback(null, { success: true, userId });
+                    }
+                });
+            }
+        });
+    }
+
     // 新增方法：判断用户表中是否有数据
     isUserInitialized(callback) {
         this.db.get(`SELECT COUNT(*) as count FROM users`, [], (err, row) => {

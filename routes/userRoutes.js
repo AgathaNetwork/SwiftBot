@@ -51,6 +51,34 @@ router.put('/api/changename', (req, res) => {
     });
 });
 
+// 用户初始化路由
+router.post('/api/initializeUser', (req, res) => {
+    const { username, name, password } = req.body;
+
+    // 验证用户名格式
+    if (!/^[a-z0-9]+$/.test(username)) {
+        return res.status(400).json({ error: 'Username must be lowercase letters and numbers only.' });
+    }
+
+    // 验证昵称格式
+    if (!/^[a-zA-Z0-9_]+$/.test(name)) {
+        return res.status(400).json({ error: 'Nickname must be letters, numbers, and underscores only.' });
+    }
+
+    // 验证密码长度
+    if (password.length < 8 || password.length > 20) {
+        return res.status(400).json({ error: 'Password must be 8-20 characters long.' });
+    }
+
+    userService.initializeUser(username, password, name, (err, result) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(result);
+        }
+    });
+});
+
 // 判断用户是否已初始化路由
 router.get('/api/isUserInitialized', (req, res) => {
     userService.isUserInitialized((err, isInitialized) => {
