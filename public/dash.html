@@ -19,10 +19,86 @@
     <div class="container mt-5">
         <div class="row justify-content-center">
             <div class="col-md-6 text-center">
-                <h2 class="text-center mb-4">欢迎使用 SwiftBot 控制面板</h2>
-                <!-- 后续可在此处添加内容 -->
+                <h3 id="usernameDisplay"></h3>
+                <div class="btn-group" role="group" aria-label="Control buttons">
+                    <a href="profile.html" class="btn btn-secondary">编辑用户信息</a>
+                    <a href="create.html" class="btn btn-primary">创建新的Bot</a>
+                    <!-- 新增登出按钮 -->
+                    <button id="logoutBtn" class="btn btn-danger">登出</button>
+                </div>
             </div>
         </div>
     </div>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-12">
+                <!-- 稍后将在此处添加动态内容 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 从 Cookie 中获取 sessionId
+            const sessionId = document.cookie.split('; ').find(row => row.startsWith('sess='));
+            if (!sessionId) {
+                window.location.href = '/';
+                return;
+            }
+            const sessionIdValue = sessionId.split('=')[1];
+
+            // 使用 sessionId 获取用户信息
+            fetch(`/api/userinfo/session/${sessionIdValue}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Invalid session');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.username) {
+                        document.getElementById('usernameDisplay').innerText = `你好，${data.name}！`;
+                    } else {
+                        document.getElementById('usernameDisplay').innerText = '无法获取用户名';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('usernameDisplay').innerText = '无法获取用户名';
+                    window.location.href = '/';
+                });
+
+            // 新增登出按钮事件监听
+            document.getElementById('logoutBtn').addEventListener('click', function() {
+                fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sessionId: sessionIdValue })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('登出失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // 清除 Cookie 中的 sessionId
+                        document.cookie = 'sess=; max-age=0; path=/';
+                        window.location.href = '/';
+                    } else {
+                        alert('登出失败，请重试');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('登出时发生错误：' + error.message);
+                });
+            });
+        });
+    </script>
 </body>
 </html>
