@@ -3,6 +3,10 @@ const path = require('path');
 const yaml = require('js-yaml');
 const fs = require('fs');
 const app = express();
+const SQLiteService = require('./components/sqliteService');
+const dbPath = 'users.db';
+const userService = new SQLiteService(dbPath);
+userService.initialize();
 
 // 读取配置文件中的port
 const configPath = path.join(__dirname, 'config', 'cfg.yml');

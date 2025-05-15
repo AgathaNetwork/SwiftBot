@@ -1,4 +1,5 @@
 const sqlite3 = require('sqlite3').verbose();
+const bcrypt = require('bcrypt');
 
 class SQLiteService {
     constructor(dbPath) {
@@ -30,36 +31,57 @@ class SQLiteService {
         });
     }
 
-    register(username, password, name, callback) {
-        this.db.run(`INSERT INTO users (username, password, name) VALUES (?, ?, ?)`, [username, password, name], function(err) {
-            if (err) {
-                callback(err);
-            } else {
-                callback(null, this.lastID);
-            }
-        });
+    async register(username, password, name, callback) {
+        try {
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+            this.db.run(`INSERT INTO users (username, password, name) VALUES (?, ?, ?)`, [username, hashedPassword, name], function(err) {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null, this.lastID);
+                }
+            });
+        } catch (err) {
+            callback(err);
+        }
     }
 
-    login(username, password, callback) {
-        this.db.get(`SELECT * FROM users WHERE username = ? AND password = ?`, [username, password], (err, row) => {
+    async login(username, password, callback) {
+        this.db.get(`SELECT * FROM users WHERE username = ?`, [username], async (err, row) => {
             if (err) {
                 callback(err);
             } else if (row) {
-                callback(null, row);
+                try {
+                    const match = await bcrypt.compare(password, row.password);
+                    if (match) {
+                        callback(null, row);
+                    } else {
+                        callback(new Error('Invalid username or password'));
+                    }
+                } catch (err) {
+                    callback(err);
+                }
             } else {
                 callback(new Error('Invalid username or password'));
             }
         });
     }
 
-    changePassword(userId, newPassword, callback) {
-        this.db.run(`UPDATE users SET password = ? WHERE id = ?`, [newPassword, userId], function(err) {
-            if (err) {
-                callback(err);
-            } else {
-                callback(null, this.changes);
-            }
-        });
+    async changePassword(userId, newPassword, callback) {
+        try {
+            const saltRounds = 10;
+            const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+            this.db.run(`UPDATE users SET password = ? WHERE id = ?`, [hashedPassword, userId], function(err) {
+                if (err) {
+                    callback(err);
+                } else {
+                    callback(null, this.changes);
+                }
+            });
+        } catch (err) {
+            callback(err);
+        }
     }
 
     logout(userId, callback) {
