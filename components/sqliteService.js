@@ -179,6 +179,22 @@ class SQLiteService {
             }
         });
     }
+
+    // 新增方法：通过 sessionId 获取用户信息
+    getUserInfoBySession(sessionId, callback) {
+        this.db.get(`
+            SELECT users.id, users.username, users.name
+            FROM users
+            JOIN sessions ON users.id = sessions.user_id
+            WHERE sessions.session_id = ? AND sessions.is_logged_out = FALSE
+        `, [sessionId], (err, row) => {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, row);
+            }
+        });
+    }
 }
 
 module.exports = SQLiteService;

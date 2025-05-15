@@ -39,6 +39,20 @@ router.get('/api/userinfo/:userId', (req, res) => {
     });
 });
 
+// 新增路由：通过 sessionId 获取用户信息
+router.get('/api/userinfo/session/:sessionId', (req, res) => {
+    const { sessionId } = req.params;
+    userService.getUserInfoBySession(sessionId, (err, user) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else if (!user) {
+            res.status(404).json({ error: 'User not found or session is invalid.' });
+        } else {
+            res.json(user);
+        }
+    });
+});
+
 // 修改用户名路由
 router.put('/api/changename', (req, res) => {
     const { userId, newName } = req.body;
@@ -70,7 +84,7 @@ router.post('/api/initializeUser', (req, res) => {
         return res.status(400).json({ error: 'Password must be 8-20 characters long.' });
     }
 
-    userService.initializeUser(username, password, name, (err, result) => {
+    userService.initializeUser(username, name, password, (err, result) => {
         if (err) {
             res.status(500).json({ error: err.message });
         } else {

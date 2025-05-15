@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-light" style="background-color: #e3f2fd;">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                SwiftBot
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h2 class="text-center mb-4">登录</h2>
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" placeholder="请输入用户名" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="password" placeholder="请输入密码" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">登录</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="container mt-5">
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display: none;">
+            错误信息将显示在这里。
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            // 获取客户端IP地址（假设通过后端传递）
+            const ip = window.location.hostname;
+
+            // 发送登录请求
+            fetch('/api/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username, password, ip })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.sessionId) {
+                    // 将 sessionId 存储到名为 sess 的 Cookie 中，有效期为 1 年
+                    document.cookie = `sess=${data.sessionId}; max-age=${365 * 24 * 60 * 60}; path=/`;
+                    window.location.href = 'dash.html';
+                } else {
+                    document.getElementById('errorAlert').innerText = '登录失败，请重试。';
+                    document.getElementById('errorAlert').style.display = 'flex';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('errorAlert').innerText = '登录时发生错误：' + error.message;
+                document.getElementById('errorAlert').style.display = 'flex';
+            });
+        });
+    </script>
+</body>
+</html>
