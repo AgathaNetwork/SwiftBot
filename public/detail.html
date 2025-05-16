@@ -20,8 +20,12 @@
         <div class="row justify-content-center">
             <div class="col-md-6 text-center">
                 <h2 id="botTitle"></h2>
-                <!-- 新增返回按钮 -->
-                <a href="dash.html" class="btn btn-secondary mb-3">返回控制面板</a>
+                <!-- 新增控制按钮组 -->
+                <div class="btn-group mb-3" role="group">
+                    <button class="btn btn-primary" id="respawnBtn">重生</button>
+                    <button class="btn btn-danger" id="deleteBtn">删除</button>
+                    <a href="dash.html" class="btn btn-secondary">返回控制面板</a>
+                </div>
                 <div id="botDetails" class="mt-4">
                     <div class="card">
                         <div class="card-header">
@@ -52,6 +56,18 @@
                 <div id="errorMessage" class="alert alert-danger mt-4" style="display: none;">
                     错误信息将显示在这里。
                 </div>
+
+                <!-- 修改：聊天记录框改为文本框 -->
+                <div class="card mt-5">
+                    <div class="card-header">
+                        聊天记录
+                    </div>
+                    <textarea id="chatMessages" class="form-control" rows="10" readonly></textarea>
+                    <div class="input-group mt-3">
+                        <input type="text" id="messageInput" class="form-control" placeholder="输入消息或指令...">
+                        <button class="btn btn-primary" id="sendMessageBtn">发送</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -69,31 +85,135 @@
                 return;
             }
 
-            // 发送请求获取Bot属性
-            fetch(`/api/botProperties/${uuid}`)
+            // 定义更新函数
+            function updateBotInfo() {
+                // 发送请求获取Bot属性
+                fetch(`/api/botProperties/${uuid}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('无法获取Bot属性');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // 填充Bot属性
+                        document.getElementById('uuid').innerText = data.uuid;
+                        document.getElementById('position').innerText = `X: ${data.position.x.toFixed(1)}, Y: ${data.position.y.toFixed(1)}, Z: ${data.position.z.toFixed(1)}`;
+                        document.getElementById('world').innerText = data.world;
+                        document.getElementById('ping').innerText = data.ping;
+                        // 设置页面标题
+                        document.getElementById('botTitle').innerText = `${data.username}`;
+                        // 隐藏加载信息
+                        document.getElementById('loadingMessage').style.display = 'none';
+
+                        // 获取聊天记录并显示在文本框中
+                        fetch(`/api/botChatMessages/${uuid}`)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('无法获取聊天记录');
+                                }
+                                return response.json();
+                            })
+                            .then(messages => {
+                                const chatMessagesTextarea = document.getElementById('chatMessages');
+                                chatMessagesTextarea.value = ''; // 清空现有内容
+
+                                if (messages.length === 0) {
+                                    chatMessagesTextarea.value = '暂无聊天记录。';
+                                } else {
+                                    messages.forEach(message => {
+                                        const formattedMessage = `${message.content} \t\t ${new Date(message.timestamp).toLocaleString()}\n`;
+                                        chatMessagesTextarea.value += formattedMessage;
+                                    });
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching chat messages:', error);
+                                document.getElementById('chatMessages').value = '获取聊天记录时发生错误。';
+                            });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.getElementById('errorMessage').innerText = '获取Bot属性时发生错误：' + error.message;
+                        document.getElementById('errorMessage').style.display = 'block';
+                        document.getElementById('loadingMessage').style.display = 'none';
+                    });
+            }
+
+            // 初始化时更新一次
+            updateBotInfo();
+
+            // 每1秒更新一次
+            setInterval(updateBotInfo, 1000);
+
+            // 绑定发送按钮的点击事件
+            document.getElementById('sendMessageBtn').addEventListener('click', function() {
+                const messageInput = document.getElementById('messageInput');
+                const message = messageInput.value.trim();
+
+                if (!message) {
+                    alert('请输入消息或指令！');
+                    return;
+                }
+
+                // 发送消息到后端
+                fetch('/api/sendMessage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ uuid, message })
+                })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('无法获取Bot属性');
+                        throw new Error('发送消息失败');
                     }
                     return response.json();
                 })
                 .then(data => {
-                    // 填充Bot属性
-                    document.getElementById('uuid').innerText = data.uuid;
-                    document.getElementById('position').innerText = `X: ${data.position.x.toFixed(1)}, Y: ${data.position.y.toFixed(1)}, Z: ${data.position.z.toFixed(1)}`;
-                    document.getElementById('world').innerText = data.world;
-                    document.getElementById('ping').innerText = data.ping;
-                    // 设置页面标题
-                    document.getElementById('botTitle').innerText = `${data.username}`;
-                    // 隐藏加载信息
-                    document.getElementById('loadingMessage').style.display = 'none';
+                    messageInput.value = ''; // 清空输入框
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    document.getElementById('errorMessage').innerText = '获取Bot属性时发生错误：' + error.message;
-                    document.getElementById('errorMessage').style.display = 'block';
-                    document.getElementById('loadingMessage').style.display = 'none';
+                    console.error('Error sending message:', error);
+                    alert('发送消息时发生错误：' + error.message);
                 });
+            });
+
+            // 新增：绑定重生按钮的点击事件
+            document.getElementById('respawnBtn').addEventListener('click', function() {
+                if (confirm('确定要重生Bot吗？')) {
+                    fetch(`/api/respawnBot/${uuid}`, { method: 'POST' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('重生Bot失败');
+                            }
+                            alert('Bot已重生');
+                            updateBotInfo(); // 更新Bot信息
+                        })
+                        .catch(error => {
+                            console.error('Error respawning bot:', error);
+                            alert('重生Bot时发生错误：' + error.message);
+                        });
+                }
+            });
+
+            // 新增：绑定删除按钮的点击事件
+            document.getElementById('deleteBtn').addEventListener('click', function() {
+                if (confirm('确定要删除Bot吗？此操作不可撤销！')) {
+                    fetch(`/api/deleteBot/${uuid}`, { method: 'DELETE' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('删除Bot失败');
+                            }
+                            alert('Bot已删除');
+                            window.location.href = 'dash.html'; // 返回控制面板
+                        })
+                        .catch(error => {
+                            console.error('Error deleting bot:', error);
+                            alert('删除Bot时发生错误：' + error.message);
+                        });
+                }
+            });
         });
     </script>
 </body>

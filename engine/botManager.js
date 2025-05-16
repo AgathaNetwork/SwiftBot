@@ -35,9 +35,12 @@ class BotManager {
             this.removeBot(uuid); // 使用 uuid 删除 bot
         });
 
-        // 新增：监听聊天消息事件
-        bot.on('chat', (username, message) => {
-            bot.chatMessages.push({ username, message, timestamp: new Date().toISOString() });
+        // 修改：监听所有消息事件（包括聊天消息和其他系统消息）
+        bot.on('messagestr', (message) => {
+            bot.chatMessages.push({
+                content: message, // 消息内容
+                timestamp: new Date().toISOString() // 时间戳
+            });
             // 限制聊天消息数量，避免内存占用过大
             if (bot.chatMessages.length > 100) {
                 bot.chatMessages.shift();
@@ -101,6 +104,48 @@ class BotManager {
             return null; // 如果找不到对应的bot，返回null
         }
         return bot.chatMessages;
+    }
+
+    // 新增方法：向指定Bot发送消息或指令
+    sendMessageToBot(uuid, message) {
+        const bot = this.getBotByUuid(uuid);
+        if (!bot) {
+            throw new Error('Bot not found');
+        }
+
+        // 模拟发送消息（实际应用中可能需要根据Bot的状态进行判断）
+        bot.chat(message); // 假设Bot有chat方法用于发送消息
+    }
+
+    // 新增函数：重生指定的Bot
+    respawnBot(uuid) {
+        const bot = this.getBotByUuid(uuid);
+        if (!bot) {
+            throw new Error('Bot not found');
+        }
+
+        // 假设重生操作是重新创建Bot实例
+        const newBot = this.createBot(bot.host, bot.port, bot.version, bot.username, uuid);
+        return newBot;
+    }
+
+    // 修改函数：删除指定的Bot
+    deleteBot(uuid) {
+        const bot = this.getBotByUuid(uuid);
+        if (!bot) {
+            throw new Error('Bot not found'); // 增强错误信息
+        }
+
+        try {
+            // 结束Bot连接
+            bot.end();
+            // 从管理器中移除Bot
+            this.removeBot(uuid);
+            console.log(`Bot with UUID ${uuid} has been successfully deleted.`); // 添加日志
+        } catch (err) {
+            console.error(`Failed to delete Bot with UUID ${uuid}:`, err); // 捕获异常并记录日志
+            throw new Error(`Failed to delete Bot: ${err.message}`); // 抛出详细错误信息
+        }
     }
 }
 

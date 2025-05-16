@@ -158,7 +158,62 @@ router.get('/api/botChatMessages/:uuid', (req, res) => {
         return res.status(404).json({ error: 'Bot not found or no chat messages available' });
     }
 
+    // 返回的消息格式为 [{ content: '消息内容', timestamp: '时间戳' }]
     res.json(chatMessages);
+});
+
+// 新增路由：向指定Bot发送消息或指令
+router.post('/api/sendMessage', (req, res) => {
+    const { uuid, message } = req.body;
+
+    if (!uuid || !message) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    try {
+        const bot = botManager.getBotByUuid(uuid);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' });
+        }
+
+        // 调用BotManager的方法发送消息
+        botManager.sendMessageToBot(uuid, message);
+        res.json({ message: 'Message sent successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 新增路由：重生指定的Bot
+router.post('/api/respawnBot/:uuid', (req, res) => {
+    const { uuid } = req.params;
+
+    try {
+        // 调用 BotManager 的 respawnBot 方法
+        const respawnedBot = botManager.respawnBot(uuid);
+        res.json({ message: 'Bot respawned successfully', bot: respawnedBot });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 新增路由：删除指定的Bot
+router.delete('/api/deleteBot/:uuid', (req, res) => {
+    const { uuid } = req.params;
+
+    try {
+        const bot = botManager.getBotByUuid(uuid); // 验证 Bot 是否存在
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' }); // 返回 404 错误
+        }
+
+        // 调用 BotManager 的 deleteBot 方法
+        botManager.deleteBot(uuid);
+        res.json({ message: 'Bot deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting bot:', err); // 记录错误日志
+        res.status(500).json({ error: err.message }); // 返回详细的错误信息
+    }
 });
 
 // 新增路由：删除Bot
