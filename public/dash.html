@@ -33,7 +33,14 @@
     <div class="container mt-5">
         <div class="row">
             <div class="col-12">
-                <!-- 稍后将在此处添加动态内容 -->
+                <!-- 新增 Bot 列表容器 -->
+                <h4>Bot 列表</h4>
+                <ul id="botList" class="list-group">
+                    <!-- 动态生成的 Bot 列表项将插入到这里 -->
+                </ul>
+                <div id="noBotsMessage" class="text-center mt-3" style="display: none;">
+                    暂无 Bot，请先创建一个。
+                </div>
             </div>
         </div>
     </div>
@@ -98,6 +105,75 @@
                     alert('登出时发生错误：' + error.message);
                 });
             });
+
+            // 新增：获取 Bot 列表并动态生成列表项
+            fetch('/api/bots')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch bots');
+                    }
+                    return response.json();
+                })
+                .then(bots => {
+                    const botList = document.getElementById('botList');
+                    const noBotsMessage = document.getElementById('noBotsMessage');
+
+                    if (bots.length === 0) {
+                        botList.style.display = 'none';
+                        noBotsMessage.style.display = 'block';
+                    } else {
+                        botList.style.display = 'block';
+                        noBotsMessage.style.display = 'none';
+
+                        bots.forEach(bot => {
+                            const listItem = document.createElement('li');
+                            listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                            
+                            // 创建用户名部分
+                            const usernamePart = document.createElement('div');
+                            usernamePart.innerHTML = `
+                                <h5 class="mb-1"><a href="detail.html?uuid=${bot.uuid}" style="text-decoration: none; color: inherit;">${bot.username}</a></h5>
+                                <small class="text-muted">${bot.uuid}</small>
+                            `;
+                            
+                            // 创建操作按钮部分
+                            const buttonPart = document.createElement('div');
+                            buttonPart.innerHTML = `
+                                <button class="btn btn-sm btn-danger delete-bot" data-uuid="${bot.uuid}">删除</button>
+                            `;
+                            
+                            // 添加事件监听器
+                            buttonPart.querySelector('.delete-bot').addEventListener('click', function() {
+                                if (confirm('确定要删除这个Bot吗？')) {
+                                    fetch(`/api/bots/${bot.uuid}`, {
+                                        method: 'DELETE'
+                                    })
+                                    .then(response => {
+                                        if (response.ok) {
+                                            listItem.remove();
+                                        } else {
+                                            alert('删除失败，请重试');
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error:', error);
+                                        alert('删除时发生错误：' + error.message);
+                                    });
+                                }
+                            });
+                            
+                            // 将两部分添加到列表项
+                            listItem.appendChild(usernamePart);
+                            listItem.appendChild(buttonPart);
+                            
+                            botList.appendChild(listItem);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching bots:', error);
+                    alert('无法获取 Bot 列表');
+                });
         });
     </script>
 </body>

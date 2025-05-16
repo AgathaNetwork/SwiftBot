@@ -3,6 +3,7 @@ const router = express.Router();
 const SQLiteService = require('../components/sqliteService');
 const userService = new SQLiteService('db/runtime.db');
 const botManager = require('../engine/botManager');
+const crypto = require('crypto');
 
 // 登录路由
 router.post('/api/login', (req, res) => {
@@ -115,8 +116,10 @@ router.post('/api/createBot', (req, res) => {
     }
 
     try {
-        const bot = botManager.createBot(ip, port, version, username);
-        res.json({ message: 'Bot created successfully', bot: { username, ip, port, version } });
+        // 生成随机 UUID
+        const uuid = crypto.randomUUID();
+        const bot = botManager.createBot(ip, port, version, username, uuid);
+        res.json({ message: 'Bot created successfully', bot: { username, ip, port, version, uuid } });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -126,11 +129,36 @@ router.post('/api/createBot', (req, res) => {
 router.get('/api/bots', (req, res) => {
     const bots = botManager.getAllBots().map(bot => ({
         username: bot.username,
-        ip: bot.options.host,
-        port: bot.options.port,
-        version: bot.options.version
+        ip: bot.host,
+        port: bot.port,
+        version: bot.version,
+        uuid: bot.uuid // 返回 Bot 的 UUID
     }));
     res.json(bots);
+});
+
+// 新增路由：获取Bot的属性信息
+router.get('/api/botProperties/:uuid', (req, res) => {
+    const { uuid } = req.params;
+    const botProperties = botManager.getBotProperties(uuid);
+
+    if (!botProperties) {
+        return res.status(404).json({ error: 'Bot not found' });
+    }
+
+    res.json(botProperties);
+});
+
+// 新增路由：获取Bot的聊天消息
+router.get('/api/botChatMessages/:uuid', (req, res) => {
+    const { uuid } = req.params;
+    const chatMessages = botManager.getBotChatMessages(uuid);
+
+    if (!chatMessages) {
+        return res.status(404).json({ error: 'Bot not found or no chat messages available' });
+    }
+
+    res.json(chatMessages);
 });
 
 // 新增路由：删除Bot
