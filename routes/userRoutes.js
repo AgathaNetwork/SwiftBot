@@ -248,24 +248,6 @@ router.post('/api/dropInventory/:uuid', (req, res) => {
     }
 });
 
-// 新增路由：左键操作
-router.post('/api/leftClick/:uuid', (req, res) => {
-    const { uuid } = req.params;
-
-    try {
-        const bot = botManager.getBotByUuid(uuid);
-        if (!bot) {
-            return res.status(404).json({ error: 'Bot not found' });
-        }
-
-        // 调用 BotManager 的 leftClick 方法
-        botManager.leftClick(uuid);
-        res.json({ message: 'Left click performed successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
-
 // 新增路由：右键操作
 router.post('/api/rightClick/:uuid', (req, res) => {
     const { uuid } = req.params;
@@ -282,6 +264,18 @@ router.post('/api/rightClick/:uuid', (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});
+
+// 新增路由：获取视距内的实体数量
+router.get('/api/entityCount/:uuid', (req, res) => {
+    const { uuid } = req.params;
+    const entityCount = botManager.getEntityCount(uuid);
+
+    if (entityCount === null) {
+        return res.status(404).json({ error: 'Bot not found' });
+    }
+
+    res.json({ entityCount });
 });
 
 module.exports = router;

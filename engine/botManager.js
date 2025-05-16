@@ -5,15 +5,17 @@ class BotManager {
         this.bots = new Map();
     }
 
-    createBot(ip, port, version, username, uuid) {
+    createBot(ip, port, version, username, uuid, language = 'zh_CN') {
         const bot = mineflayer.createBot({
             host: ip,
             port: port,
             version: version,
-            username: username
+            username: username,
+            locale: language
         });
 
         bot.uuid = uuid; // 将 uuid 存储到 bot 对象中
+        
 
         // 新增：存储聊天消息的数组
         bot.chatMessages = [];
@@ -123,45 +125,23 @@ class BotManager {
         if (!bot) {
             throw new Error('Bot not found');
         }
-    
-        const items = bot.inventory.items().filter(item => item && item.count > 0);
-    
-        // 并发丢弃所有有效物品
-        const tossPromises = items.map(item =>
-            new Promise((resolve, reject) => {
-                if (item.type != null){
-                    bot.toss(item.type, null, item.count, (err) => {
-                        if (err) {
-                            console.warn(`Failed to toss item ${item.displayName}: ${err.message}`);
-                            reject(err);
-                        } else {
-                            resolve();
-                        }
-                    });
-                }
-            })
-        );
-    
-        // 使用 allSettled 确保所有操作完成，即使有失败
-        const results = await Promise.allSettled(tossPromises);
-    
-        // 可选：统计成功/失败数量
-        const successCount = results.filter(r => r.status === 'fulfilled').length;
-        const failCount = results.length - successCount;
-    
-        console.log(`Inventory of Bot ${bot.username} has been dropped. Success: ${successCount}, Failed: ${failCount}`);
-    }
-
-    // 新增方法：左键操作
-    leftClick(uuid) {
-        const bot = this.getBotByUuid(uuid);
-        if (!bot) {
-            throw new Error('Bot not found');
-        }
-
-        // 模拟左键操作（实际应用中可能需要根据Bot的状态进行判断）
-        bot.activateItem(); // 假设Bot有activateItem方法用于左键操作
-        console.log(`Left click performed on Bot ${bot.username}.`);
+        // 获取物品栏中的所有物品  
+        const items = bot.inventory.items();  
+            
+        if (items.length === 0) {  
+            throw new  Error('No items in inventory');
+        }  
+            
+        // 使用循环遍历所有物品并逐个丢弃  
+        for (const item of items) {  
+            try {  
+            await bot.tossStack(item);  
+            // 可选：添加小延迟防止服务器过载  
+            await new Promise(resolve => setTimeout(resolve, 100));  
+            } catch (error) {  
+                console.log(`Error while tossing  ${item.name} : ${error.message}`);  
+            }  
+        }  
     }
 
     // 新增方法：右键操作
@@ -174,6 +154,15 @@ class BotManager {
         // 模拟右键操作（实际应用中可能需要根据Bot的状态进行判断）
         bot.activateItem(); 
         console.log(`Right click performed on Bot ${bot.username}.`);
+    }
+
+    // 新增方法：获取视距内的实体数量
+    getEntityCount(uuid) {
+        const bot = this.getBotByUuid(uuid);
+        if (!bot) {
+            return null; // 如果找不到对应的bot，返回null
+        }
+        return Object.keys(bot.entities).length; // 返回视距内实体的数量
     }
 
     // 修改函数：重生指定的Bot
