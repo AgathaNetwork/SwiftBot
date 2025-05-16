@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const SQLiteService = require('../components/sqliteService');
 const userService = new SQLiteService('db/runtime.db');
+const botManager = require('../engine/botManager');
 
 // 登录路由
 router.post('/api/login', (req, res) => {
@@ -102,6 +103,48 @@ router.get('/api/isUserInitialized', (req, res) => {
             res.json({ isInitialized });
         }
     });
+});
+
+// 新增路由：创建新的Bot
+router.post('/api/createBot', (req, res) => {
+    const { ip, port, version, username } = req.body;
+
+    // 验证参数
+    if (!ip || !port || !version || !username) {
+        return res.status(400).json({ error: 'Missing required parameters' });
+    }
+
+    try {
+        const bot = botManager.createBot(ip, port, version, username);
+        res.json({ message: 'Bot created successfully', bot: { username, ip, port, version } });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 新增路由：获取所有Bot
+router.get('/api/bots', (req, res) => {
+    const bots = botManager.getAllBots().map(bot => ({
+        username: bot.username,
+        ip: bot.options.host,
+        port: bot.options.port,
+        version: bot.options.version
+    }));
+    res.json(bots);
+});
+
+// 新增路由：删除Bot
+router.delete('/api/bots/:username', (req, res) => {
+    const { username } = req.params;
+    const bot = botManager.getBot(username);
+
+    if (!bot) {
+        return res.status(404).json({ error: 'Bot not found' });
+    }
+
+    bot.end();
+    botManager.removeBot(username);
+    res.json({ message: `Bot ${username} has been removed` });
 });
 
 module.exports = router;

@@ -10,7 +10,8 @@
     "express": "^4.18.2",
     "js-yaml": "^4.1.0",
     "sqlite3":  "^5.1.0",
-    "bcrypt": "^6.0.0"
+    "bcrypt": "^6.0.0",
+    "mineflayer": "^4.27.0"
   },
   "author": "",
   "license": "ISC"

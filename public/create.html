@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>创建新的Bot</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    <nav class="navbar navbar-light" style="background-color: #e3f2fd;">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                SwiftBot
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <h2 class="text-center mb-4">创建新的Bot</h2>
+                <form id="createBotForm">
+                    <div class="mb-3">
+                        <label for="ip" class="form-label">服务器IP地址</label>
+                        <input type="text" class="form-control" id="ip" placeholder="请输入服务器IP地址" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="port" class="form-label">端口号</label>
+                        <input type="number" class="form-control" id="port" placeholder="请输入端口号" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" placeholder="请输入用户名" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="version" class="form-label">版本号</label>
+                        <input type="text" class="form-control" id="version" placeholder="请输入版本号" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">创建Bot</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="container mt-5">
+        <div id="successAlert" class="alert alert-primary" role="alert" style="display: none;">
+            Bot创建成功！
+        </div>
+        <div id="errorAlert" class="alert alert-danger" role="alert" style="display: none;">
+            错误信息将显示在这里。
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('createBotForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const ip = document.getElementById('ip').value;
+            const port = document.getElementById('port').value;
+            const username = document.getElementById('username').value;
+            const version = document.getElementById('version').value;
+
+            // 验证IP格式
+            if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+                document.getElementById('errorAlert').innerText = '请输入有效的IP地址。';
+                document.getElementById('errorAlert').style.display = 'flex';
+                return;
+            }
+
+            // 验证端口号范围
+            if (port < 1 || port > 65535) {
+                document.getElementById('errorAlert').innerText = '端口号必须在1到65535之间。';
+                document.getElementById('errorAlert').style.display = 'flex';
+                return;
+            }
+
+            // 发送请求
+            fetch('/api/createBot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip, port, version, username })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.error || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.message) {
+                    document.getElementById('successAlert').style.display = 'flex';
+                    setTimeout(() => {
+                        window.location.href = 'dash.html';
+                    }, 2000);
+                } else {
+                    document.getElementById('errorAlert').innerText = 'Bot创建失败：' + data.error;
+                    document.getElementById('errorAlert').style.display = 'flex';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('errorAlert').innerText = '创建Bot时发生错误：' + error.message;
+                document.getElementById('errorAlert').style.display = 'flex';
+            });
+        });
+    </script>
+</body>
+</html>
