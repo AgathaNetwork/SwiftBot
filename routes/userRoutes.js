@@ -190,8 +190,8 @@ router.post('/api/respawnBot/:uuid', (req, res) => {
 
     try {
         // 调用 BotManager 的 respawnBot 方法
-        const respawnedBot = botManager.respawnBot(uuid);
-        res.json({ message: 'Bot respawned successfully', bot: respawnedBot });
+        botManager.respawnBot(uuid);
+        res.json({ message: 'Bot respawned successfully' });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
@@ -202,17 +202,17 @@ router.delete('/api/deleteBot/:uuid', (req, res) => {
     const { uuid } = req.params;
 
     try {
-        const bot = botManager.getBotByUuid(uuid); // 验证 Bot 是否存在
+        const bot = botManager.getBotByUuid(uuid);
         if (!bot) {
-            return res.status(404).json({ error: 'Bot not found' }); // 返回 404 错误
+            return res.status(404).json({ error: 'Bot not found' });
         }
 
         // 调用 BotManager 的 deleteBot 方法
         botManager.deleteBot(uuid);
         res.json({ message: 'Bot deleted successfully' });
     } catch (err) {
-        console.error('Error deleting bot:', err); // 记录错误日志
-        res.status(500).json({ error: err.message }); // 返回详细的错误信息
+        console.error('Error deleting bot:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -228,6 +228,60 @@ router.delete('/api/bots/:username', (req, res) => {
     bot.end();
     botManager.removeBot(username);
     res.json({ message: `Bot ${username} has been removed` });
+});
+
+// 新增路由：丢出背包
+router.post('/api/dropInventory/:uuid', (req, res) => {
+    const { uuid } = req.params;
+
+    try {
+        const bot = botManager.getBotByUuid(uuid);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' });
+        }
+
+        // 调用 BotManager 的 dropInventory 方法
+        botManager.dropInventory(uuid);
+        res.json({ message: 'Inventory dropped successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 新增路由：左键操作
+router.post('/api/leftClick/:uuid', (req, res) => {
+    const { uuid } = req.params;
+
+    try {
+        const bot = botManager.getBotByUuid(uuid);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' });
+        }
+
+        // 调用 BotManager 的 leftClick 方法
+        botManager.leftClick(uuid);
+        res.json({ message: 'Left click performed successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 新增路由：右键操作
+router.post('/api/rightClick/:uuid', (req, res) => {
+    const { uuid } = req.params;
+
+    try {
+        const bot = botManager.getBotByUuid(uuid);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' });
+        }
+
+        // 调用 BotManager 的 rightClick 方法
+        botManager.rightClick(uuid);
+        res.json({ message: 'Right click performed successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;

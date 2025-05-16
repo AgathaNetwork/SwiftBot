@@ -117,16 +117,80 @@ class BotManager {
         bot.chat(message); // 假设Bot有chat方法用于发送消息
     }
 
-    // 新增函数：重生指定的Bot
+    // 新增方法：丢出背包
+    async dropInventory(uuid) {
+        const bot = this.getBotByUuid(uuid);
+        if (!bot) {
+            throw new Error('Bot not found');
+        }
+    
+        const items = bot.inventory.items().filter(item => item && item.count > 0);
+    
+        // 并发丢弃所有有效物品
+        const tossPromises = items.map(item =>
+            new Promise((resolve, reject) => {
+                if (item.type != null){
+                    bot.toss(item.type, null, item.count, (err) => {
+                        if (err) {
+                            console.warn(`Failed to toss item ${item.displayName}: ${err.message}`);
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                }
+            })
+        );
+    
+        // 使用 allSettled 确保所有操作完成，即使有失败
+        const results = await Promise.allSettled(tossPromises);
+    
+        // 可选：统计成功/失败数量
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        const failCount = results.length - successCount;
+    
+        console.log(`Inventory of Bot ${bot.username} has been dropped. Success: ${successCount}, Failed: ${failCount}`);
+    }
+
+    // 新增方法：左键操作
+    leftClick(uuid) {
+        const bot = this.getBotByUuid(uuid);
+        if (!bot) {
+            throw new Error('Bot not found');
+        }
+
+        // 模拟左键操作（实际应用中可能需要根据Bot的状态进行判断）
+        bot.activateItem(); // 假设Bot有activateItem方法用于左键操作
+        console.log(`Left click performed on Bot ${bot.username}.`);
+    }
+
+    // 新增方法：右键操作
+    rightClick(uuid) {
+        const bot = this.getBotByUuid(uuid);
+        if (!bot) {
+            throw new Error('Bot not found');
+        }
+
+        // 模拟右键操作（实际应用中可能需要根据Bot的状态进行判断）
+        bot.activateItem(); 
+        console.log(`Right click performed on Bot ${bot.username}.`);
+    }
+
+    // 修改函数：重生指定的Bot
     respawnBot(uuid) {
         const bot = this.getBotByUuid(uuid);
         if (!bot) {
             throw new Error('Bot not found');
         }
 
-        // 假设重生操作是重新创建Bot实例
-        const newBot = this.createBot(bot.host, bot.port, bot.version, bot.username, uuid);
-        return newBot;
+        // 检查机器人是否已经死亡
+        if (bot.entity && bot.entity.dead) {
+            console.log(`Bot ${bot.username} is already dead. Attempting respawn...`);
+            bot.respawn(); // 使用 respawn 方法重生
+            console.log(`Bot ${bot.username} has been respawned.`);
+        } else {
+            console.log(`Bot ${bot.username} is not dead. No respawn needed.`);
+        }
     }
 
     // 修改函数：删除指定的Bot

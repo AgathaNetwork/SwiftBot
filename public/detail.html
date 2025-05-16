@@ -24,7 +24,7 @@
                 <div class="btn-group mb-3" role="group">
                     <button class="btn btn-primary" id="respawnBtn">重生</button>
                     <button class="btn btn-danger" id="deleteBtn">删除</button>
-                    <a href="dash.html" class="btn btn-secondary">返回控制面板</a>
+                    <a href="dash.html" class="btn btn-secondary">返回</a>
                 </div>
                 <div id="botDetails" class="mt-4">
                     <div class="card">
@@ -32,9 +32,6 @@
                             Bot 属性
                         </div>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item">
-                                <strong>UUID:</strong> <span id="uuid"></span>
-                            </li>
                             <li class="list-group-item">
                                 <strong>位置:</strong> <span id="position"></span>
                             </li>
@@ -68,6 +65,17 @@
                         <button class="btn btn-primary" id="sendMessageBtn">发送</button>
                     </div>
                 </div>
+
+                <div class="card mt-5">
+                    <div class="card-header">
+                        操作管理
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary me-2" id="dropInventoryBtn">丢出背包</button>
+                        <button class="btn btn-outline-primary me-2" id="leftClickBtn">左键一次</button>
+                        <button class="btn btn-outline-primary" id="rightClickBtn">右键一次</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -97,7 +105,6 @@
                     })
                     .then(data => {
                         // 填充Bot属性
-                        document.getElementById('uuid').innerText = data.uuid;
                         document.getElementById('position').innerText = `X: ${data.position.x.toFixed(1)}, Y: ${data.position.y.toFixed(1)}, Z: ${data.position.z.toFixed(1)}`;
                         document.getElementById('world').innerText = data.world;
                         document.getElementById('ping').innerText = data.ping;
@@ -214,6 +221,58 @@
                         });
                 }
             });
+
+            // 新增：绑定丢出背包按钮的点击事件
+            document.getElementById('dropInventoryBtn').addEventListener('click', function() {
+                if (confirm('确定要丢出背包吗？')) {
+                    fetch(`/api/dropInventory/${uuid}`, { method: 'POST' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('丢出背包失败');
+                            }
+                            alert('背包已丢出');
+                        })
+                        .catch(error => {
+                            console.error('Error dropping inventory:', error);
+                            alert('丢出背包时发生错误：' + error.message);
+                        });
+                }
+            });
+
+            // 新增：绑定左键一次按钮的点击事件
+            document.getElementById('leftClickBtn').addEventListener('click', function() {
+                if (confirm('确定要执行左键操作吗？')) {
+                    fetch(`/api/leftClick/${uuid}`, { method: 'POST' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('左键操作失败');
+                            }
+                            alert('左键操作已完成');
+                        })
+                        .catch(error => {
+                            console.error('Error performing left click:', error);
+                            alert('左键操作时发生错误：' + error.message);
+                        });
+                }
+            });
+
+            // 新增：绑定右键一次按钮的点击事件
+            document.getElementById('rightClickBtn').addEventListener('click', function() {
+                if (confirm('确定要执行右键操作吗？')) {
+                    fetch(`/api/rightClick/${uuid}`, { method: 'POST' })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('右键操作失败');
+                            }
+                            alert('右键操作已完成');
+                        })
+                        .catch(error => {
+                            console.error('Error performing right click:', error);
+                            alert('右键操作时发生错误：' + error.message);
+                        });
+                }
+            });
+
         });
     </script>
 </body>
