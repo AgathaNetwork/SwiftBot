@@ -15,7 +15,8 @@ class BotManager {
         });
 
         bot.uuid = uuid; // 将 uuid 存储到 bot 对象中
-        
+        bot.presetIp = ip;
+        bot.presetPort = port;
 
         // 新增：存储聊天消息的数组
         bot.chatMessages = [];

@@ -129,8 +129,8 @@ router.post('/api/createBot', (req, res) => {
 router.get('/api/bots', (req, res) => {
     const bots = botManager.getAllBots().map(bot => ({
         username: bot.username,
-        ip: bot.host || 'Unknown', // 确保返回 ip 字段，如果不存在则默认为 'Unknown'
-        port: bot.port || 'Unknown', // 确保返回 port 字段，如果不存在则默认为 'Unknown'
+        ip: bot.presetIp, // 确保返回 ip 字段，如果不存在则默认为 'Unknown'
+        port: bot.presetPort, // 确保返回 port 字段，如果不存在则默认为 'Unknown'
         version: bot.version,
         uuid: bot.uuid // 返回 Bot 的 UUID
     }));
