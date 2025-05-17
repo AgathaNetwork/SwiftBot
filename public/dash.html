@@ -21,7 +21,7 @@
             <div class="col-md-6 text-center">
                 <h3 id="usernameDisplay"></h3>
                 <div class="btn-group" role="group" aria-label="Control buttons">
-                    <a href="profile.html" class="btn btn-secondary">编辑用户信息</a>
+                    <a href="keys.html" class="btn btn-secondary">Key管理</a>
                     <a href="create.html" class="btn btn-primary">创建新的Bot</a>
                     <!-- 新增登出按钮 -->
                     <button id="logoutBtn" class="btn btn-danger">登出</button>
@@ -127,7 +127,7 @@
 
                         bots.forEach(bot => {
                             const listItem = document.createElement('li');
-                            listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+                            listItem.className = 'list-group-item d-flex flex-column justify-content-between align-items-start';
                             
                             // 创建用户名部分
                             const usernamePart = document.createElement('div');
@@ -136,8 +136,15 @@
                                 <small class="text-muted">${bot.uuid}</small>
                             `;
                             
+                            // 新增：创建 IP 和端口号部分
+                            const ipPortPart = document.createElement('div');
+                            ipPortPart.innerHTML = `
+                                <small class="text-muted">服务器: ${bot.ip}:${bot.port}</small>
+                            `;
+                            
                             // 创建操作按钮部分
                             const buttonPart = document.createElement('div');
+                            buttonPart.className = 'mt-2';
                             buttonPart.innerHTML = `
                                 <button class="btn btn-sm btn-danger delete-bot" data-uuid="${bot.uuid}">删除</button>
                             `;
@@ -162,8 +169,9 @@
                                 }
                             });
                             
-                            // 将两部分添加到列表项
+                            // 将各部分添加到列表项
                             listItem.appendChild(usernamePart);
+                            listItem.appendChild(ipPortPart); // 新增：添加 IP 和端口号部分
                             listItem.appendChild(buttonPart);
                             
                             botList.appendChild(listItem);

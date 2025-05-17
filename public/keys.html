@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Key管理</title>
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/js/bootstrap.bundle.min.js"></script>
+    <style>
+        .key-preview {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+        .key-full {
+            display: none;
+        }
+        .key-hint {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        /* 新增样式：统一 Key 列表项的样式 */
+        .list-group-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-radius: 0.25rem;
+            margin-bottom: 0.5rem;
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+        }
+        .list-group-item:last-child {
+            margin-bottom: 0;
+        }
+        .list-group-item .btn {
+            margin-left: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-light" style="background-color: #e3f2fd;">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">
+                SwiftBot
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <h3>Key管理</h3>
+                <div class="btn-group" role="group" aria-label="Control buttons">
+                    <button id="backToDashBtn" class="btn btn-secondary">返回</button>
+                    <button id="createKeyBtn" class="btn btn-primary">创建新的Key</button>
+                </div>
+                <div id="keyList" class="list-group mt-4">
+                    <!-- 动态生成的 Key 列表项将插入到这里 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 从 Cookie 中获取 sessionId
+            const sessionId = document.cookie.split('; ').find(row => row.startsWith('sess='));
+            if (!sessionId) {
+                window.location.href = '/';
+                return;
+            }
+            const sessionIdValue = sessionId.split('=')[1];
+
+            // 加载 Key 列表
+            loadKeys();
+
+            // 创建 Key 按钮事件监听
+            document.getElementById('createKeyBtn').addEventListener('click', function() {
+                fetch('/api/createKey', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sessionId: sessionIdValue })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('创建Key失败');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert('Key创建成功');
+                    loadKeys();
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('创建Key时发生错误：' + error.message);
+                });
+            });
+
+            // 新增：返回 dash 页面按钮事件监听
+            document.getElementById('backToDashBtn').addEventListener('click', function() {
+                window.location.href = 'dash.html';
+            });
+
+            // 加载 Key 列表
+            function loadKeys() {
+                fetch('/api/listKeys?sessionId=' + sessionIdValue)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('获取Key列表失败');
+                        }
+                        return response.json();
+                    })
+                    .then(keys => {
+                        const keyList = document.getElementById('keyList');
+                        keyList.innerHTML = '';
+
+                        if (keys.length === 0) {
+                            keyList.innerHTML = '<p>暂无Key，请先创建一个。</p>';
+                        } else {
+                            keys.forEach(key => {
+                                const listItem = document.createElement('li');
+                                listItem.className = 'list-group-item d-flex justify-content-between align-items-center';
+
+                                // 创建 Key 部分
+                                const keyPart = document.createElement('div');
+                                keyPart.innerHTML = `
+                                    <span class="key-preview" data-full="${key.key}">${key.key.substring(0, 5)}</span>
+                                    <span class="key-full" style="display: none;">${key.key}</span>
+                                    <span class="key-hint">(点击展开)</span>
+                                `;
+
+                                // 创建时间部分
+                                const timePart = document.createElement('div');
+                                timePart.className = 'text-muted small';
+                                timePart.textContent = new Date(key.time).toLocaleString(); // 格式化时间为本地时间
+
+                                // 创建删除按钮部分
+                                const deletePart = document.createElement('div');
+                                deletePart.innerHTML = `
+                                    <button class="btn btn-sm btn-danger delete-key" data-key="${key.key}">删除</button>
+                                `;
+
+                                // 将三部分添加到列表项
+                                listItem.appendChild(keyPart);
+                                listItem.appendChild(timePart); // 添加时间部分
+                                listItem.appendChild(deletePart);
+
+                                keyList.appendChild(listItem);
+                            });
+
+                            // 使用事件委托绑定点击事件
+                            keyList.addEventListener('click', function(event) {
+                                const target = event.target;
+                                if (target.classList.contains('key-preview') || target.classList.contains('key-full')) {
+                                    const keyPreview = target.closest('.list-group-item').querySelector('.key-preview');
+                                    const keyFull = target.closest('.list-group-item').querySelector('.key-full');
+                                    const hint = target.closest('.list-group-item').querySelector('.key-hint');
+
+                                    if (keyFull.style.display === 'inline') {
+                                        // 收回 Key
+                                        keyPreview.style.display = 'inline';
+                                        keyFull.style.display = 'none';
+                                        hint.textContent = '(点击展开)';
+                                    } else {
+                                        // 展开 Key
+                                        keyPreview.style.display = 'none';
+                                        keyFull.style.display = 'inline';
+                                        hint.textContent = '(点击收回)';
+                                    }
+                                } else if (target.classList.contains('delete-key')) {
+                                    // 删除 Key
+                                    const key = target.getAttribute('data-key');
+                                    if (confirm('确定要删除这个Key吗？')) {
+                                        fetch(`/api/deleteKey/${key}`, {
+                                            method: 'DELETE'
+                                        })
+                                        .then(response => {
+                                            if (response.ok) {
+                                                target.closest('.list-group-item').remove();
+                                            } else {
+                                                alert('删除失败，请重试');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error:', error);
+                                            alert('删除时发生错误：' + error.message);
+                                        });
+                                    }
+                                }
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching keys:', error);
+                        alert('无法获取Key列表');
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

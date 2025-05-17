@@ -129,8 +129,8 @@ router.post('/api/createBot', (req, res) => {
 router.get('/api/bots', (req, res) => {
     const bots = botManager.getAllBots().map(bot => ({
         username: bot.username,
-        ip: bot.host,
-        port: bot.port,
+        ip: bot.host || 'Unknown', // 确保返回 ip 字段，如果不存在则默认为 'Unknown'
+        port: bot.port || 'Unknown', // 确保返回 port 字段，如果不存在则默认为 'Unknown'
         version: bot.version,
         uuid: bot.uuid // 返回 Bot 的 UUID
     }));
@@ -276,6 +276,42 @@ router.get('/api/entityCount/:uuid', (req, res) => {
     }
 
     res.json({ entityCount });
+});
+
+// 新增路由：创建 key
+router.post('/api/createKey', (req, res) => {
+    const { sessionId } = req.body;
+    userService.createKey(sessionId, (err, result) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(result);
+        }
+    });
+});
+
+// 新增路由：删除 key
+router.delete('/api/deleteKey/:key', (req, res) => {
+    const { key } = req.params;
+    userService.deleteKey(key, (err, result) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(result);
+        }
+    });
+});
+
+// 新增路由：列出 key 列表
+router.get('/api/listKeys', (req, res) => {
+    const { sessionId } = req.query;
+    userService.listKeys(sessionId, (err, keys) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else {
+            res.json(keys);
+        }
+    });
 });
 
 module.exports = router;

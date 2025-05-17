@@ -51,6 +51,54 @@ class SQLiteService {
                 console.log('Sessions table created or already exists.');
             }
         });
+
+        // 新增 keys 表
+        this.db.run(`
+            CREATE TABLE IF NOT EXISTS keys (
+                key TEXT PRIMARY KEY,
+                time DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        `, (err) => {
+            if (err) {
+                console.error(`Error creating table: ${err.message}`);
+            } else {
+                console.log('Keys table created or already exists.');
+            }
+        });
+    }
+
+    // 新增方法：创建 key
+    createKey(sessionId, callback) {
+        const key = crypto.randomBytes(10).toString('hex').toLowerCase(); // 生成 20 位小写英文字母和数字的组合
+        this.db.run(`INSERT INTO keys (key) VALUES (?)`, [key], function(err) {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, { key, time: new Date().toISOString() });
+            }
+        });
+    }
+
+    // 新增方法：删除 key
+    deleteKey(key, callback) {
+        this.db.run(`DELETE FROM keys WHERE key = ?`, [key], function(err) {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, { success: true });
+            }
+        });
+    }
+
+    // 新增方法：列出 key 列表
+    listKeys(sessionId, callback) {
+        this.db.all(`SELECT key, time FROM keys`, [], (err, rows) => {
+            if (err) {
+                callback(err);
+            } else {
+                callback(null, rows);
+            }
+        });
     }
 
     async register(username, password, name, callback) {
