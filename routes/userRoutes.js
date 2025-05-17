@@ -314,4 +314,108 @@ router.get('/api/listKeys', (req, res) => {
     });
 });
 
+// 新增路由：通过 key 创建 bot
+router.post('/key/createBot/:key', (req, res) => {
+    const { key } = req.params;
+    const { ip, port, version, username } = req.body;
+    const userService = new SQLiteService('db/runtime.db');
+
+    // 校验 key
+    userService.validateKey(key, (err, isValid) => {
+        if (err) {
+            return res.status(401).json({ error: err.message });
+        }
+
+        // 验证参数
+        if (!ip || !port || !version || !username) {
+            return res.status(400).json({ error: 'Missing required parameters' });
+        }
+
+        try {
+            // 生成随机 UUID
+            const uuid = crypto.randomUUID();
+            const bot = botManager.createBot(ip, port, version, username, uuid);
+            res.json({ message: 'Bot created successfully', bot: { username, ip, port, version, uuid } });
+        } catch (err) {
+            res.status(500).json({ error: err.message });
+        }
+    });
+});
+
+// 新增路由：通过 key 删除 bot
+router.delete('/key/deleteBot/:key/:uuid', (req, res) => {
+    const { key, uuid } = req.params;
+    const userService = new SQLiteService('db/runtime.db');
+
+    // 校验 key
+    userService.validateKey(key, (err, isValid) => {
+        if (err) {
+            return res.status(401).json({ error: err.message });
+        }
+
+        const bot = botManager.getBotByUuid(uuid);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' });
+        }
+
+        // 调用 BotManager 的 deleteBot 方法
+        botManager.deleteBot(uuid);
+        res.json({ message: 'Bot deleted successfully' });
+    });
+});
+
+// 新增路由：通过 key 和 name 获取 bot 信息
+router.get('/key/getBotByName/:key/:name', (req, res) => {
+    const { key, name } = req.params;
+    const userService = new SQLiteService('db/runtime.db');
+
+    // 校验 key
+    userService.validateKey(key, (err, isValid) => {
+        if (err) {
+            return res.status(401).json({ error: err.message });
+        }
+
+        // 获取 bot 信息
+        const bot = botManager.getBot(name);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' });
+        }
+
+        res.json({
+            username: bot.username,
+            ip: bot.presetIp || 'Unknown',
+            port: bot.presetPort || 'Unknown',
+            version: bot.version,
+            uuid: bot.uuid
+        });
+    });
+});
+
+// 新增路由：通过 key 和 uuid 获取 bot 信息
+router.get('/key/getBotByUuid/:key/:uuid', (req, res) => {
+    const { key, uuid } = req.params;
+    const userService = new SQLiteService('db/runtime.db');
+
+    // 校验 key
+    userService.validateKey(key, (err, isValid) => {
+        if (err) {
+            return res.status(401).json({ error: err.message });
+        }
+
+        // 获取 bot 信息
+        const bot = botManager.getBotByUuid(uuid);
+        if (!bot) {
+            return res.status(404).json({ error: 'Bot not found' });
+        }
+
+        res.json({
+            username: bot.username,
+            ip: bot.presetIp || 'Unknown',
+            port: bot.presetPort || 'Unknown',
+            version: bot.version,
+            uuid: bot.uuid
+        });
+    });
+});
+
 module.exports = router;

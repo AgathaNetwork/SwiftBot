@@ -187,6 +187,19 @@ class SQLiteService {
         });
     }
 
+    // 新增方法：校验 key 是否有效
+    validateKey(key, callback) {
+        this.db.get(`SELECT * FROM keys WHERE key = ?`, [key], (err, row) => {
+            if (err) {
+                callback(err);
+            } else if (!row) {
+                callback(new Error('Invalid key'));
+            } else {
+                callback(null, true);
+            }
+        });
+    }
+
     // 新增方法：初始化用户
     initializeUser(username, name, password, callback) {
         this.isUserInitialized((err, isInitialized) => {
