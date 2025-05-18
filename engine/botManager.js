@@ -75,6 +75,16 @@ class BotManager {
         return this.bots.get(uuid);
     }
 
+    // 新增函数：通过 username 获取 bot
+    getBotByName(username) {
+        for (const [uuid, bot] of this.bots.entries()) {
+            if (bot.username === username) {
+                return bot;
+            }
+        }
+        return null; // 如果找不到对应的 bot，返回 null
+    }
+
     // 新增函数：获取Bot的属性信息
     getBotProperties(uuid) {
         const bot = this.getBotByUuid(uuid);
@@ -128,11 +138,7 @@ class BotManager {
         }
         // 获取物品栏中的所有物品  
         const items = bot.inventory.items();  
-            
-        if (items.length === 0) {  
-            throw new  Error('No items in inventory');
-        }  
-            
+        
         // 使用循环遍历所有物品并逐个丢弃  
         for (const item of items) {  
             try {  

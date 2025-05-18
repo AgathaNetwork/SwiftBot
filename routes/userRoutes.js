@@ -376,7 +376,7 @@ router.get('/key/getBotByName/:key/:name', (req, res) => {
         }
 
         // 获取 bot 信息
-        const bot = botManager.getBot(name);
+        const bot = botManager.getBotByName(name);
         if (!bot) {
             return res.status(404).json({ error: 'Bot not found' });
         }
