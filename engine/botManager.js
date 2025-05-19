@@ -6,52 +6,64 @@ class BotManager {
     }
 
     createBot(ip, port, version, username, uuid, language = 'zh_CN') {
-        const bot = mineflayer.createBot({
-            host: ip,
-            port: port,
-            version: version,
-            username: username,
-            locale: language
-        });
-
-        bot.uuid = uuid; // 将 uuid 存储到 bot 对象中
-        bot.presetIp = ip;
-        bot.presetPort = port;
-
-        // 新增：存储聊天消息的数组
-        bot.chatMessages = [];
-
-        bot.on('login', () => {
-            console.log(`Bot ${username} logged in.`);
-        });
-
-        bot.on('kicked', (reason) => {
-            console.log(`Bot ${username} kicked from server: ${reason}`);
-        });
-
-        bot.on('error', (err) => {
-            console.error(`Bot ${username} error: ${err.message}`);
-        });
-
-        bot.on('end', () => {
-            console.log(`Bot ${username} disconnected from server`);
-            this.removeBot(uuid); // 使用 uuid 删除 bot
-        });
-
-        // 修改：监听所有消息事件（包括聊天消息和其他系统消息）
-        bot.on('messagestr', (message) => {
-            bot.chatMessages.push({
-                content: message, // 消息内容
-                timestamp: new Date().toISOString() // 时间戳
+        try {
+            const bot = mineflayer.createBot({
+                host: ip,
+                port: port,
+                version: version,
+                username: username,
+                locale: language
             });
-            // 限制聊天消息数量，避免内存占用过大
-            if (bot.chatMessages.length > 100) {
-                bot.chatMessages.shift();
-            }
-        });
 
-        this.bots.set(uuid, bot); // 使用 uuid 作为键存储 bot
-        return bot;
+            bot.uuid = uuid; // 将 uuid 存储到 bot 对象中
+            bot.presetIp = ip;
+            bot.presetPort = port;
+
+            // 新增：存储聊天消息的数组
+            bot.chatMessages = [];
+
+            bot.on('login', () => {
+                console.log(`Bot ${username} logged in.`);
+            });
+
+            bot.on('kicked', (reason) => {
+                console.log(`Bot ${username} kicked from server: ${reason}`);
+            });
+
+            bot.on('error', (err) => {
+                console.error(`Bot ${username} error: ${err.message}`);
+            });
+
+            bot.on('end', () => {
+                console.log(`Bot ${username} disconnected from server`);
+                this.removeBot(uuid); // 使用 uuid 删除 bot
+            });
+
+            bot.on('resourcePack', (url, hash) => {  
+                console.log(`Resource pack sent: ${url}`);  
+                  
+                // 自动接受资源包  
+                bot.acceptResourcePack();  
+            });
+
+            // 修改：监听所有消息事件（包括聊天消息和其他系统消息）
+            bot.on('messagestr', (message) => {
+                bot.chatMessages.push({
+                    content: message, // 消息内容
+                    timestamp: new Date().toISOString() // 时间戳
+                });
+                // 限制聊天消息数量，避免内存占用过大
+                if (bot.chatMessages.length > 100) {
+                    bot.chatMessages.shift();
+                }
+            });
+
+            this.bots.set(uuid, bot); // 使用 uuid 作为键存储 bot
+            return bot;
+        } catch (error) {
+            console.error(`Failed to create bot for username ${username}:`, error.message);
+            throw error; // 重新抛出错误，以便调用方可以处理
+        }
     }
 
     getBot(uuid) {
